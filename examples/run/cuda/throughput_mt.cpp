@@ -16,8 +16,17 @@ int main(int argc, char* argv[]) {
 
     // Execute the throughput test.
     static const bool use_host_caching = true;
-    return traccc::throughput_mt_alt<traccc::cuda::full_chain_algorithm,
+    LIKWID_MARKER_INIT;
+
+    LIKWID_MARKER_REGISTER("CopyToDevice");
+    LIKWID_MARKER_REGISTER("Clusterization");
+    LIKWID_MARKER_REGISTER("Seeding");
+    LIKWID_MARKER_REGISTER("Estimation");
+    LIKWID_MARKER_REGISTER("CopyBackDevice");
+    auto ret = traccc::throughput_mt_alt<traccc::cuda::full_chain_algorithm,
                                      vecmem::cuda::host_memory_resource>(
         "Multi-threaded CUDA GPU throughput tests", argc, argv,
         use_host_caching);
+    LIKWID_MARKER_CLOSE;
+    return ret;
 }

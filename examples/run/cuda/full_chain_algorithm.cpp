@@ -77,6 +77,9 @@ full_chain_algorithm::~full_chain_algorithm() {
 full_chain_algorithm::output_type full_chain_algorithm::operator()(
     const alt_cell_collection_types::host& cells,
     const cell_module_collection_types::host& modules) const {
+    LIKWID_MARKER_THREADINIT;
+
+    LIKWID_MARKER_START("CopyToDevice");
 
     // Create device copy of input collections
     alt_cell_collection_types::buffer cells_buffer(cells.size(),
@@ -86,16 +89,29 @@ full_chain_algorithm::output_type full_chain_algorithm::operator()(
                                                         *m_cached_device_mr);
     m_copy(vecmem::get_data(modules), modules_buffer);
 
+    LIKWID_MARKER_STOP("CopyToDevice");
+
+    LIKWID_MARKER_START("Clusterization");
     // Run the clusterization (asynchronously).
     const clusterization_algorithm::output_type spacepoints =
         m_clusterization(cells_buffer, modules_buffer);
-    const track_params_estimation::output_type track_params =
-        m_track_parameter_estimation(spacepoints, m_seeding(spacepoints));
+    LIKWID_MARKER_STOP("Clusterization");
 
+    LIKWID_MARKER_START("Seeding");
+    const auto seeding = m_seeding(spacepoints);
+    LIKWID_MARKER_STOP("Seeding");
+
+    LIKWID_MARKER_START("Estimation");
+    const track_params_estimation::output_type track_params =
+        m_track_parameter_estimation(spacepoints, seeding);
+    LIKWID_MARKER_STOP("Estimation");
+
+    LIKWID_MARKER_START("CopyBackDevice");
     // Get the final data back to the host.
     bound_track_parameters_collection_types::host result;
     m_copy(track_params, result);
     m_stream.synchronize();
+    LIKWID_MARKER_STOP("CopyBackDevice");
 
     // Return the host container.
     return result;
