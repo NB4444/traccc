@@ -24,7 +24,7 @@ traccc_add_executable( seeding_example_cuda "seeding_example_cuda.cpp"
 # Add likwid
 find_package(likwid REQUIRED)
 add_definitions(${DLIDWID})
-
+link_directories(/opt/ohpc/pub/libs/gnu9/likwid/5.0.1/lib)
 #
 # Set up the "throughput applications".
 #

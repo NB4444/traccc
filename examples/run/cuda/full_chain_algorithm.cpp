@@ -77,7 +77,6 @@ full_chain_algorithm::~full_chain_algorithm() {
 full_chain_algorithm::output_type full_chain_algorithm::operator()(
     const alt_cell_collection_types::host& cells,
     const cell_module_collection_types::host& modules) const {
-    LIKWID_MARKER_THREADINIT;
 
     LIKWID_MARKER_START("CopyToDevice");
 
