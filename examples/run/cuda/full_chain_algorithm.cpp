@@ -105,12 +105,15 @@ full_chain_algorithm::output_type full_chain_algorithm::operator()(
         m_track_parameter_estimation(spacepoints, seeding);
     LIKWID_MARKER_STOP("Estimation");
 
-    LIKWID_MARKER_START("CopyBackDevice");
+    LIKWID_MARKER_START("CopyBackToHost");
     // Get the final data back to the host.
     bound_track_parameters_collection_types::host result;
     m_copy(track_params, result);
+    LIKWID_MARKER_STOP("CopyBackToHost");
+
+    LIKWID_MARKER_START("SynchronizeStream");
     m_stream.synchronize();
-    LIKWID_MARKER_STOP("CopyBackDevice");
+    LIKWID_MARKER_STOP("SynchronizeStream");
 
     // Return the host container.
     return result;
