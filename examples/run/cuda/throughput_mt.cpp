@@ -22,7 +22,7 @@ int main(int argc, char* argv[]) {
     LIKWID_MARKER_REGISTER("Clusterization");
     LIKWID_MARKER_REGISTER("Seeding");
     LIKWID_MARKER_REGISTER("Estimation");
-    LIKWID_MARKER_REGISTER("CopyBackDevice");
+    LIKWID_MARKER_REGISTER("CopyBackToHost");
     auto ret = traccc::throughput_mt_alt<traccc::cuda::full_chain_algorithm,
                                      vecmem::cuda::host_memory_resource>(
         "Multi-threaded CUDA GPU throughput tests", argc, argv,

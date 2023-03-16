@@ -111,10 +111,7 @@ full_chain_algorithm::output_type full_chain_algorithm::operator()(
     m_copy(track_params, result);
     LIKWID_MARKER_STOP("CopyBackToHost");
 
-    LIKWID_MARKER_START("SynchronizeStream");
     m_stream.synchronize();
-    LIKWID_MARKER_STOP("SynchronizeStream");
-
     // Return the host container.
     return result;
 }
