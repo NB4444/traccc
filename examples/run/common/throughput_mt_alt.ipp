@@ -120,7 +120,6 @@ int throughput_mt_alt(std::string_view description, int argc, char* argv[],
 
     LIKWID_MARKER_STOP("ReadFiles");
 
-    LIKWID_MARKER_START("SetupAlgorithm");
 
     // Set up cached memory resources on top of the host memory resource
     // separately for each CPU thread.
@@ -144,7 +143,6 @@ int throughput_mt_alt(std::string_view description, int argc, char* argv[],
             {alg_host_mr, throughput_cfg.target_cells_per_partition});
     }
 
-    LIKWID_MARKER_STOP("SetupAlgorithm");
 
     // Seed the random number generator.
     std::srand(std::time(0));
@@ -187,7 +185,7 @@ int throughput_mt_alt(std::string_view description, int argc, char* argv[],
     {
         // Measure the total time of execution.
         performance::timer t{"Event processing", times};
-        LIKWID_MARKER_START("EventsProcessing");
+
         // Process the requested number of events.
         for (std::size_t i = 0; i < throughput_cfg.processed_events; ++i) {
 
@@ -208,7 +206,7 @@ int throughput_mt_alt(std::string_view description, int argc, char* argv[],
                 });
             });
         }
-        LIKWID_MARKER_STOP("EventsProcessing");
+
         // Wait for all tasks to finish.
         group.wait();
     }
