@@ -187,7 +187,7 @@ int throughput_mt_alt(std::string_view description, int argc, char* argv[],
     {
         // Measure the total time of execution.
         performance::timer t{"Event processing", times};
-
+        LIKWID_MARKER_START("EventsProcessing");
         // Process the requested number of events.
         for (std::size_t i = 0; i < throughput_cfg.processed_events; ++i) {
 
@@ -208,7 +208,7 @@ int throughput_mt_alt(std::string_view description, int argc, char* argv[],
                 });
             });
         }
-
+        LIKWID_MARKER_STOP("EventsProcessing");
         // Wait for all tasks to finish.
         group.wait();
     }
