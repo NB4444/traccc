@@ -42,19 +42,6 @@
 #include <memory>
 #include <vector>
 
-#ifdef LIKWID_PERFMON
-#include <likwid-marker.h>
-#else
-#define LIKWID_MARKER_INIT
-#define LIKWID_MARKER_THREADINIT
-#define LIKWID_MARKER_SWITCH
-#define LIKWID_MARKER_REGISTER(regionTag)
-#define LIKWID_MARKER_START(regionTag)
-#define LIKWID_MARKER_STOP(regionTag)
-#define LIKWID_MARKER_CLOSE
-#define LIKWID_MARKER_GET(regionTag, nevents, events, time, count)
-#endif
-
 namespace traccc {
 
 template <typename FULL_CHAIN_ALG, typename HOST_MR>
@@ -96,8 +83,6 @@ int throughput_mt_alt(std::string_view description, int argc, char* argv[],
     // Memory resource to use in the test.
     HOST_MR uncached_host_mr;
 
-    LIKWID_MARKER_START("ReadFiles");
-
     // Read the surface transforms
     auto surface_transforms =
         traccc::io::read_geometry(throughput_cfg.detector_file);
@@ -118,8 +103,6 @@ int throughput_mt_alt(std::string_view description, int argc, char* argv[],
                 &digi_cfg, &uncached_host_mr));
         }
     }
-
-    LIKWID_MARKER_STOP("ReadFiles");
 
 
     // Set up cached memory resources on top of the host memory resource
