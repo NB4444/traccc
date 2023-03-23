@@ -1,0 +1,12 @@
+tml_detector/trackml-detector.csv filter=lfs diff=lfs merge=lfs -text
+tml_pixel_barrel/event000000007-cells.csv filter=lfs diff=lfs merge=lfs -text
+tml_pixel_barrel/event000000000-cells.csv filter=lfs diff=lfs merge=lfs -text
+tml_pixel_barrel/event000000001-cells.csv filter=lfs diff=lfs merge=lfs -text
+tml_pixel_barrel/event000000002-cells.csv filter=lfs diff=lfs merge=lfs -text
+tml_pixel_barrel/event000000003-cells.csv filter=lfs diff=lfs merge=lfs -text
+tml_pixel_barrel/event000000004-cells.csv filter=lfs diff=lfs merge=lfs -text
+tml_pixel_barrel/event000000005-cells.csv filter=lfs diff=lfs merge=lfs -text
+tml_pixel_barrel/event000000006-cells.csv filter=lfs diff=lfs merge=lfs -text
+tml_pixel_barrel/event000000009-cells.csv filter=lfs diff=lfs merge=lfs -text
+tml_pixel_barrel/event000000008-cells.csv filter=lfs diff=lfs merge=lfs -text
+*.csv filter=lfs diff=lfs merge=lfs -text

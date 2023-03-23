@@ -1,6 +1,6 @@
 /** TRACCC library, part of the ACTS project (R&D line)
  *
- * (c) 2022 CERN for the benefit of the ACTS project
+ * (c) 2022-2023 CERN for the benefit of the ACTS project
  *
  * Mozilla Public License Version 2.0
  */
@@ -39,9 +39,10 @@ full_chain_algorithm::full_chain_algorithm(
       m_target_cells_per_partition(target_cells_per_partition),
       m_clusterization(memory_resource{*m_cached_device_mr, &m_host_mr}, m_copy,
                        m_stream, m_target_cells_per_partition),
-      m_seeding(memory_resource{*m_cached_device_mr, &m_host_mr}),
+      m_seeding(memory_resource{*m_cached_device_mr, &m_host_mr}, m_copy,
+                m_stream),
       m_track_parameter_estimation(
-          memory_resource{*m_cached_device_mr, &m_host_mr}) {
+          memory_resource{*m_cached_device_mr, &m_host_mr}, m_copy, m_stream) {
 
     // Tell the user what device is being used.
     int device = 0;
@@ -63,9 +64,10 @@ full_chain_algorithm::full_chain_algorithm(const full_chain_algorithm& parent)
       m_target_cells_per_partition(parent.m_target_cells_per_partition),
       m_clusterization(memory_resource{*m_cached_device_mr, &m_host_mr}, m_copy,
                        m_stream, m_target_cells_per_partition),
-      m_seeding(memory_resource{*m_cached_device_mr, &m_host_mr}),
+      m_seeding(memory_resource{*m_cached_device_mr, &m_host_mr}, m_copy,
+                m_stream),
       m_track_parameter_estimation(
-          memory_resource{*m_cached_device_mr, &m_host_mr}) {}
+          memory_resource{*m_cached_device_mr, &m_host_mr}, m_copy, m_stream) {}
 
 full_chain_algorithm::~full_chain_algorithm() {
 
@@ -97,12 +99,12 @@ full_chain_algorithm::output_type full_chain_algorithm::operator()(
     LIKWID_MARKER_STOP("Clusterization");
 
     LIKWID_MARKER_START("Seeding");
-    const auto seeding = m_seeding(spacepoints);
+    const auto seeding = m_seeding(spacepoints.first);
     LIKWID_MARKER_STOP("Seeding");
 
     LIKWID_MARKER_START("Estimation");
     const track_params_estimation::output_type track_params =
-        m_track_parameter_estimation(spacepoints, seeding);
+        m_track_parameter_estimation(spacepoints.first, seeding);
     LIKWID_MARKER_STOP("Estimation");
 
     LIKWID_MARKER_START("CopyBackToHost");
