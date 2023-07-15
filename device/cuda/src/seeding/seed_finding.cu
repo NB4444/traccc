@@ -186,14 +186,7 @@ seed_finding::output_type seed_finding::operator()(
                                      stream));
 
     // Count the number of doublets that we need to produce.
-    kernels::count_doublets<<<nDoubletCountBlocks/2, nDoubletCountThreads, 0,
-                              stream>>>(
-        m_seedfinder_config, g2_view, sp_grid_prefix_sum_buff,
-        doublet_counter_buffer, (*globalCounter_device).m_nMidBot,
-        (*globalCounter_device).m_nMidTop);
-    CUDA_ERROR_CHECK(cudaGetLastError());
-    m_stream.synchronize();
-    kernels::count_doublets<<<nDoubletCountBlocks/2, nDoubletCountThreads, 0,
+    kernels::count_doublets<<<nDoubletCountBlocks, nDoubletCountThreads, 0,
                               stream>>>(
         m_seedfinder_config, g2_view, sp_grid_prefix_sum_buff,
         doublet_counter_buffer, (*globalCounter_device).m_nMidBot,
@@ -228,12 +221,7 @@ seed_finding::output_type seed_finding::operator()(
 
     // Find all of the spacepoint doublets.
     kernels::
-        find_doublets<<<nDoubletFindBlocks/2, nDoubletFindThreads, 0, stream>>>(
-            m_seedfinder_config, g2_view, doublet_counter_buffer,
-            doublet_buffer_mb, doublet_buffer_mt);
-
-    kernels::
-        find_doublets<<<nDoubletFindBlocks/2, nDoubletFindThreads, 0, stream>>>(
+        find_doublets<<<nDoubletFindBlocks, nDoubletFindThreads, 0, stream>>>(
             m_seedfinder_config, g2_view, doublet_counter_buffer,
             doublet_buffer_mb, doublet_buffer_mt);
 
@@ -283,14 +271,7 @@ seed_finding::output_type seed_finding::operator()(
     m_stream.synchronize();
 
     // Reduce the triplet counts per spM.
-    kernels::reduce_triplet_counts<<<nTcReductionBlocks/2, nTcReductionThreads, 0,
-                                     stream>>>(
-        doublet_counter_buffer, triplet_counter_spM_buffer,
-        (*globalCounter_device).m_nTriplets);
-    CUDA_ERROR_CHECK(cudaGetLastError());
-    m_stream.synchronize();
-
-    kernels::reduce_triplet_counts<<<nTcReductionBlocks/2, nTcReductionThreads, 0,
+    kernels::reduce_triplet_counts<<<nTcReductionBlocks, nTcReductionThreads, 0,
                                      stream>>>(
         doublet_counter_buffer, triplet_counter_spM_buffer,
         (*globalCounter_device).m_nTriplets);
