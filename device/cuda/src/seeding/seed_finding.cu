@@ -247,7 +247,13 @@ seed_finding::output_type seed_finding::operator()(
     m_stream.synchronize();
 
     // Count the number of triplets that we need to produce.
-    kernels::count_triplets<<<nTripletCountBlocks, nTripletCountThreads, 0,
+    kernels::count_triplets<<<nTripletCountBlocks/2, nTripletCountThreads, 0,
+                              stream>>>(
+        m_seedfinder_config, g2_view, doublet_counter_buffer, doublet_buffer_mb,
+        doublet_buffer_mt, triplet_counter_spM_buffer,
+        triplet_counter_midBot_buffer);
+
+    kernels::count_triplets<<<nTripletCountBlocks/2, nTripletCountThreads, 0,
                               stream>>>(
         m_seedfinder_config, g2_view, doublet_counter_buffer, doublet_buffer_mb,
         doublet_buffer_mt, triplet_counter_spM_buffer,
