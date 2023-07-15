@@ -299,14 +299,7 @@ seed_finding::output_type seed_finding::operator()(
 
     // Find all of the spacepoint triplets.
     kernels::
-        find_triplets<<<nTripletFindBlocks/2, nTripletFindThreads, 0, stream>>>(
-            m_seedfinder_config, m_seedfilter_config, g2_view,
-            doublet_counter_buffer, doublet_buffer_mt,
-            triplet_counter_spM_buffer, triplet_counter_midBot_buffer,
-            triplet_buffer);
-
-    kernels::
-        find_triplets<<<nTripletFindBlocks/2, nTripletFindThreads, 0, stream>>>(
+        find_triplets<<<nTripletFindBlocks, nTripletFindThreads, 0, stream>>>(
             m_seedfinder_config, m_seedfilter_config, g2_view,
             doublet_counter_buffer, doublet_buffer_mt,
             triplet_counter_spM_buffer, triplet_counter_midBot_buffer,
