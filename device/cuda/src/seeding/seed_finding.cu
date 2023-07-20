@@ -97,7 +97,7 @@ __global__ void find_triplets(
     device::device_triplet_collection_types::view triplet_view,
     const unsigned int nThreads) {
 
-    const std::size_t thread = ((threadIdx.x + blockIdx.x * blockDim.x) * 13) % nThreads;
+    const std::size_t thread = ((threadIdx.x + blockIdx.x * blockDim.x) * 17) % nThreads;
     device::find_triplets(thread, config,
                           filter_config, sp_grid, doublet_counter, mt_doublets,
                           spM_tc, midBot_tc, triplet_view);
