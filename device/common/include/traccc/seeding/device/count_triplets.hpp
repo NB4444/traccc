@@ -44,7 +44,8 @@ inline void count_triplets(
     const device_doublet_collection_types::const_view& mid_bot_doublet_view,
     const device_doublet_collection_types::const_view& mid_top_doublet_view,
     triplet_counter_spM_collection_types::view spM_tc,
-    triplet_counter_collection_types::view mb_tc);
+    triplet_counter_collection_types::view mb_tc,
+    const unsigned int nThreads);
 
 }  // namespace traccc::device
 

@@ -67,11 +67,12 @@ __global__ void count_triplets(
     device::device_doublet_collection_types::const_view mb_doublets,
     device::device_doublet_collection_types::const_view mt_doublets,
     device::triplet_counter_spM_collection_types::view spM_counter,
-    device::triplet_counter_collection_types::view midBot_counter) {
+    device::triplet_counter_collection_types::view midBot_counter,
+    const unsigned int nThreads) {
 
     device::count_triplets(threadIdx.x + blockIdx.x * blockDim.x, config,
                            sp_grid, doublet_counter, mb_doublets, mt_doublets,
-                           spM_counter, midBot_counter);
+                           spM_counter, midBot_counter, nThreads);
 }
 
 /// CUDA kernel for running @c traccc::device::reduce_triplet_counts
@@ -241,6 +242,7 @@ seed_finding::output_type seed_finding::operator()(
     const unsigned int nTripletCountBlocks =
         (globalCounter_host.m_nMidBot + nTripletCountThreads - 1) /
         nTripletCountThreads;
+    const unsigned int nThreads = nTripletCountThreads * nTripletCountBlocks;
 
     // Wait here for the find doublets kernel to finish
     CUDA_ERROR_CHECK(cudaGetLastError());
@@ -251,7 +253,7 @@ seed_finding::output_type seed_finding::operator()(
                               stream>>>(
         m_seedfinder_config, g2_view, doublet_counter_buffer, doublet_buffer_mb,
         doublet_buffer_mt, triplet_counter_spM_buffer,
-        triplet_counter_midBot_buffer);
+        triplet_counter_midBot_buffer, nThreads);
 
     // Calculate the number of threads and thread blocks to run the triplet
     // count reduction kernel for.
