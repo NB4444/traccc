@@ -32,7 +32,20 @@
 
 // System include(s).
 #include <algorithm>
+#include <random>
 #include <vector>
+
+
+std::vector<int> generateRandomNumberList(int n) {
+    std::random_device rd;
+    std::vector<int> numbers;
+    std::mt19937 rng(rd());
+    for (int i = 0; i <= n; ++i) {
+        numbers.push_back(i);
+    }
+    std::shuffle(numbers.begin(), numbers.end(), rng);
+    return numbers;
+}
 
 namespace traccc::cuda {
 namespace kernels {
@@ -95,10 +108,9 @@ __global__ void find_triplets(
     device::triplet_counter_spM_collection_types::const_view spM_tc,
     device::triplet_counter_collection_types::const_view midBot_tc,
     device::device_triplet_collection_types::view triplet_view,
-    const unsigned int nThreads) {
+    int* rng_vector) {
 
-    const std::size_t thread = ((threadIdx.x + blockIdx.x * blockDim.x) * 17) % nThreads;
-    device::find_triplets(thread, config,
+    device::find_triplets(rng_vector[(threadIdx.x + blockIdx.x * blockDim.x)], config,
                           filter_config, sp_grid, doublet_counter, mt_doublets,
                           spM_tc, midBot_tc, triplet_view);
 }
@@ -297,14 +309,18 @@ seed_finding::output_type seed_finding::operator()(
         nTripletFindThreads;
 
     const unsigned int nThreadsFind = nTripletFindThreads * nTripletFindBlocks;
+
+    std::vector<int> h_vec = generateRandomNumberList(nThreadsFind);
+    int* d_vec;
+    cudaMalloc((void**)&d_vec, nThreadsFind * sizeof(int));
+    cudaMemcpy(d_vec, h_vec.data(), nThreadsFind * sizeof(int), cudaMemcpyHostToDevice);
     // Find all of the spacepoint triplets.
-    printf("%d\n", nThreadsFind);
     kernels::
         find_triplets<<<nTripletFindBlocks, nTripletFindThreads, 0, stream>>>(
             m_seedfinder_config, m_seedfilter_config, g2_view,
             doublet_counter_buffer, doublet_buffer_mt,
             triplet_counter_spM_buffer, triplet_counter_midBot_buffer,
-            triplet_buffer, nThreadsFind);
+            triplet_buffer, d_vec);
 
     // Calculate the number of threads and thread blocks to run the weight
     // updating kernel for.
