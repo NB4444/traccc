@@ -298,6 +298,7 @@ seed_finding::output_type seed_finding::operator()(
 
     const unsigned int nThreadsFind = nTripletFindThreads * nTripletFindBlocks;
     // Find all of the spacepoint triplets.
+    printf("%d\n", nThreadsFind);
     kernels::
         find_triplets<<<nTripletFindBlocks, nTripletFindThreads, 0, stream>>>(
             m_seedfinder_config, m_seedfilter_config, g2_view,
