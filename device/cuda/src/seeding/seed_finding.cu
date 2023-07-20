@@ -40,7 +40,7 @@ std::vector<int> generateRandomNumberList(int n) {
     std::random_device rd;
     std::vector<int> numbers;
     std::mt19937 rng(rd());
-    for (int i = 0; i <= n; ++i) {
+    for (int i = 0; i < n; ++i) {
         numbers.push_back(i);
     }
     std::shuffle(numbers.begin(), numbers.end(), rng);
