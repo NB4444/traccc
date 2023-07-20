@@ -71,6 +71,7 @@ __global__ void count_triplets(
     const unsigned int nThreads) {
 
     const std::size_t thread = ((threadIdx.x + blockIdx.x * blockDim.x) * 13) % nThreads;
+    printf("%d\n", thread);
     device::count_triplets(thread, config,
                            sp_grid, doublet_counter, mb_doublets, mt_doublets,
                            spM_counter, midBot_counter);
