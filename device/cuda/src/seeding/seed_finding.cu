@@ -71,7 +71,6 @@ __global__ void count_triplets(
     const unsigned int nThreads) {
 
     const std::size_t thread = ((threadIdx.x + blockIdx.x * blockDim.x) * 13) % nThreads;
-    printf("%d\n", thread);
     device::count_triplets(thread, config,
                            sp_grid, doublet_counter, mb_doublets, mt_doublets,
                            spM_counter, midBot_counter);
@@ -95,9 +94,11 @@ __global__ void find_triplets(
     device::device_doublet_collection_types::const_view mt_doublets,
     device::triplet_counter_spM_collection_types::const_view spM_tc,
     device::triplet_counter_collection_types::const_view midBot_tc,
-    device::device_triplet_collection_types::view triplet_view) {
+    device::device_triplet_collection_types::view triplet_view,
+    const unsigned int nThreads) {
 
-    device::find_triplets(threadIdx.x + blockIdx.x * blockDim.x, config,
+    const std::size_t thread = ((threadIdx.x + blockIdx.x * blockDim.x) * 13) % nThreads;
+    device::find_triplets(thread, config,
                           filter_config, sp_grid, doublet_counter, mt_doublets,
                           spM_tc, midBot_tc, triplet_view);
 }
@@ -295,13 +296,14 @@ seed_finding::output_type seed_finding::operator()(
          1) /
         nTripletFindThreads;
 
+    const unsigned int nThreadsFind = nTripletFindThreads * nTripletFindBlocks;
     // Find all of the spacepoint triplets.
     kernels::
         find_triplets<<<nTripletFindBlocks, nTripletFindThreads, 0, stream>>>(
             m_seedfinder_config, m_seedfilter_config, g2_view,
             doublet_counter_buffer, doublet_buffer_mt,
             triplet_counter_spM_buffer, triplet_counter_midBot_buffer,
-            triplet_buffer);
+            triplet_buffer, nThreadsFind);
 
     // Calculate the number of threads and thread blocks to run the weight
     // updating kernel for.
