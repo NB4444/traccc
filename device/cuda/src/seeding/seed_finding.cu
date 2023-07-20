@@ -70,9 +70,10 @@ __global__ void count_triplets(
     device::triplet_counter_collection_types::view midBot_counter,
     const unsigned int nThreads) {
 
-    device::count_triplets(threadIdx.x + blockIdx.x * blockDim.x, config,
+    const std::size_t thread = (threadIdx.x + blockIdx.x * blockDim.x) % nThreads;
+    device::count_triplets(thread, config,
                            sp_grid, doublet_counter, mb_doublets, mt_doublets,
-                           spM_counter, midBot_counter, nThreads);
+                           spM_counter, midBot_counter);
 }
 
 /// CUDA kernel for running @c traccc::device::reduce_triplet_counts
