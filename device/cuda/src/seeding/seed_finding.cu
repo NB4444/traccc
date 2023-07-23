@@ -55,9 +55,10 @@ __global__ void count_doublets(
     seedfinder_config config, sp_grid_const_view sp_grid,
     vecmem::data::vector_view<const device::prefix_sum_element_t> sp_prefix_sum,
     device::doublet_counter_collection_types::view doublet_counter,
-    unsigned int& nMidBot, unsigned int& nMidTop) {
+    unsigned int& nMidBot, unsigned int& nMidTop,
+    int* rng_vector) {
 
-    device::count_doublets(threadIdx.x + blockIdx.x * blockDim.x, config,
+    device::count_doublets(rng_vector[(threadIdx.x + blockIdx.x * blockDim.x)], config,
                            sp_grid, sp_prefix_sum, doublet_counter, nMidBot,
                            nMidTop);
 }
@@ -67,9 +68,10 @@ __global__ void find_doublets(
     seedfinder_config config, sp_grid_const_view sp_grid,
     device::doublet_counter_collection_types::const_view doublet_counter,
     device::device_doublet_collection_types::view mb_doublets,
-    device::device_doublet_collection_types::view mt_doublets) {
+    device::device_doublet_collection_types::view mt_doublets,
+    int* rng_vector) {
 
-    device::find_doublets(threadIdx.x + blockIdx.x * blockDim.x, config,
+    device::find_doublets(rng_vector[(threadIdx.x + blockIdx.x * blockDim.x)], config,
                           sp_grid, doublet_counter, mb_doublets, mt_doublets);
 }
 
@@ -92,9 +94,10 @@ __global__ void count_triplets(
 __global__ void reduce_triplet_counts(
     device::doublet_counter_collection_types::const_view doublet_counter,
     device::triplet_counter_spM_collection_types::view spM_counter,
-    unsigned int& num_triplets) {
+    unsigned int& num_triplets,
+    int* rng_vector) {
 
-    device::reduce_triplet_counts(threadIdx.x + blockIdx.x * blockDim.x,
+    device::reduce_triplet_counts(rng_vector[(threadIdx.x + blockIdx.x * blockDim.x)],
                                   doublet_counter, spM_counter, num_triplets);
 }
 
@@ -119,7 +122,8 @@ __global__ void update_triplet_weights(
     seedfilter_config filter_config, sp_grid_const_view sp_grid,
     device::triplet_counter_spM_collection_types::const_view spM_tc,
     device::triplet_counter_collection_types::const_view midBot_tc,
-    device::device_triplet_collection_types::view triplet_view) {
+    device::device_triplet_collection_types::view triplet_view,
+    int* rng_vector) {
 
     // Array for temporary storage of quality parameters for comparing triplets
     // within weight updating kernel
@@ -127,7 +131,7 @@ __global__ void update_triplet_weights(
     // Each thread uses compatSeedLimit elements of the array
     scalar* dataPos = &data[threadIdx.x * filter_config.compatSeedLimit];
 
-    device::update_triplet_weights(threadIdx.x + blockIdx.x * blockDim.x,
+    device::update_triplet_weights(rng_vector[(threadIdx.x + blockIdx.x * blockDim.x)],
                                    filter_config, sp_grid, spM_tc, midBot_tc,
                                    dataPos, triplet_view);
 }
@@ -140,7 +144,8 @@ __global__ void select_seeds(
     device::triplet_counter_spM_collection_types::const_view spM_tc,
     device::triplet_counter_collection_types::const_view midBot_tc,
     device::device_triplet_collection_types::view triplet_view,
-    alt_seed_collection_types::view seed_view) {
+    alt_seed_collection_types::view seed_view,
+    int* rng_vector) {
 
     // Array for temporary storage of triplets for comparing within seed
     // selecting kernel
@@ -148,7 +153,7 @@ __global__ void select_seeds(
     // Each thread uses max_triplets_per_spM elements of the array
     triplet* dataPos = &data2[threadIdx.x * filter_config.max_triplets_per_spM];
 
-    device::select_seeds(threadIdx.x + blockIdx.x * blockDim.x, filter_config,
+    device::select_seeds(rng_vector[(threadIdx.x + blockIdx.x * blockDim.x)], filter_config,
                          spacepoints_view, internal_sp_view, spM_tc, midBot_tc,
                          triplet_view, dataPos, seed_view);
 }
@@ -191,6 +196,13 @@ seed_finding::output_type seed_finding::operator()(
         (m_copy.get_size(sp_grid_prefix_sum_buff) + nDoubletCountThreads - 1) /
         nDoubletCountThreads;
 
+    const unsigned int nThreads_d_count = nDoubletCountThreads * nDoubletCountBlocks;
+
+    std::vector<int> h_vec_count_double = generateRandomNumberList(nThreads_d_count);
+    int* d_vec_count_double;
+    cudaMalloc((void**)&d_vec_count_double, nThreads_d_count * sizeof(int));
+    cudaMemcpy(d_vec_count_double, h_vec_count_double.data(), nThreads_d_count * sizeof(int), cudaMemcpyHostToDevice);
+
     // Counter for the total number of doublets and triplets
     vecmem::unique_alloc_ptr<device::seeding_global_counter>
         globalCounter_device =
@@ -205,7 +217,7 @@ seed_finding::output_type seed_finding::operator()(
                               stream>>>(
         m_seedfinder_config, g2_view, sp_grid_prefix_sum_buff,
         doublet_counter_buffer, (*globalCounter_device).m_nMidBot,
-        (*globalCounter_device).m_nMidTop);
+        (*globalCounter_device).m_nMidTop, d_vec_count_double);
     CUDA_ERROR_CHECK(cudaGetLastError());
     m_stream.synchronize();
 
@@ -234,11 +246,18 @@ seed_finding::output_type seed_finding::operator()(
         (doublet_counter_buffer_size + nDoubletFindThreads - 1) /
         nDoubletFindThreads;
 
+    const unsigned int nThreads_d_find = nDoubletFindThreads * nDoubletFindBlocks;
+
+    std::vector<int> h_vec_find_double = generateRandomNumberList(nThreads_d_find);
+    int* d_vec_find_double;
+    cudaMalloc((void**)&d_vec_find_double, nThreads_d_find * sizeof(int));
+    cudaMemcpy(d_vec_find_double, h_vec_find_double.data(), nThreads_d_find * sizeof(int), cudaMemcpyHostToDevice);
+
     // Find all of the spacepoint doublets.
     kernels::
         find_doublets<<<nDoubletFindBlocks, nDoubletFindThreads, 0, stream>>>(
             m_seedfinder_config, g2_view, doublet_counter_buffer,
-            doublet_buffer_mb, doublet_buffer_mt);
+            doublet_buffer_mb, doublet_buffer_mt, d_vec_find_double);
 
     // Set up the triplet counter buffers
     device::triplet_counter_spM_collection_types::buffer
@@ -281,6 +300,13 @@ seed_finding::output_type seed_finding::operator()(
         (doublet_counter_buffer_size + nTcReductionThreads - 1) /
         nTcReductionThreads;
 
+    const unsigned int nThreads_t_reduce = nTcReductionThreads * nTcReductionBlocks;
+
+    std::vector<int> h_vec_reduce_triple = generateRandomNumberList(nThreads_t_reduce);
+    int* d_vec_reduce_triple;
+    cudaMalloc((void**)&d_vec_reduce_triple, nThreads_t_reduce * sizeof(int));
+    cudaMemcpy(d_vec_reduce_triple, h_vec_reduce_triple.data(), nThreads_t_reduce * sizeof(int), cudaMemcpyHostToDevice);
+
     // Wait here for the count triplets kernel to finish
     CUDA_ERROR_CHECK(cudaGetLastError());
     m_stream.synchronize();
@@ -289,7 +315,7 @@ seed_finding::output_type seed_finding::operator()(
     kernels::reduce_triplet_counts<<<nTcReductionBlocks, nTcReductionThreads, 0,
                                      stream>>>(
         doublet_counter_buffer, triplet_counter_spM_buffer,
-        (*globalCounter_device).m_nTriplets);
+        (*globalCounter_device).m_nTriplets, d_vec_reduce_triple);
     CUDA_ERROR_CHECK(cudaGetLastError());
     m_stream.synchronize();
 
@@ -333,6 +359,13 @@ seed_finding::output_type seed_finding::operator()(
         (globalCounter_host.m_nTriplets + nWeightUpdatingThreads - 1) /
         nWeightUpdatingThreads;
 
+    const unsigned int nThreads_t_update = nWeightUpdatingThreads * nWeightUpdatingBlocks;
+
+    std::vector<int> h_vec_update_triple = generateRandomNumberList(nThreads_t_update);
+    int* d_vec_update_triple;
+    cudaMalloc((void**)&d_vec_update_triple, nThreads_t_update * sizeof(int));
+    cudaMemcpy(d_vec_update_triple, h_vec_update_triple.data(), nThreads_t_update * sizeof(int), cudaMemcpyHostToDevice);
+
     // Wait here for the find triplets kernel to finish
     CUDA_ERROR_CHECK(cudaGetLastError());
     m_stream.synchronize();
@@ -343,7 +376,7 @@ seed_finding::output_type seed_finding::operator()(
         sizeof(scalar) * m_seedfilter_config.compatSeedLimit *
             nWeightUpdatingThreads,
         stream>>>(m_seedfilter_config, g2_view, triplet_counter_spM_buffer,
-                  triplet_counter_midBot_buffer, triplet_buffer);
+                  triplet_counter_midBot_buffer, triplet_buffer, d_vec_update_triple);
 
     // Create result object: collection of seeds
     alt_seed_collection_types::buffer seed_buffer(
@@ -357,6 +390,13 @@ seed_finding::output_type seed_finding::operator()(
         (doublet_counter_buffer_size + nSeedSelectingThreads - 1) /
         nSeedSelectingThreads;
 
+    const unsigned int nThreads_seeds = nWeightUpdatingThreads * nWeightUpdatingBlocks;
+
+    std::vector<int> h_vec_seeds = generateRandomNumberList(nThreads_seeds);
+    int* d_vec_seeds;
+    cudaMalloc((void**)&d_vec_seeds, nThreads_seeds * sizeof(int));
+    cudaMemcpy(d_vec_seeds, h_vec_seeds.data(), nThreads_seeds * sizeof(int), cudaMemcpyHostToDevice);
+
     // Wait here for the update triplet weights kernel to finish
     CUDA_ERROR_CHECK(cudaGetLastError());
     m_stream.synchronize();
@@ -369,7 +409,7 @@ seed_finding::output_type seed_finding::operator()(
                             stream>>>(m_seedfilter_config, spacepoints_view,
                                       g2_view, triplet_counter_spM_buffer,
                                       triplet_counter_midBot_buffer,
-                                      triplet_buffer, seed_buffer);
+                                      triplet_buffer, seed_buffer, d_vec_seeds);
     CUDA_ERROR_CHECK(cudaGetLastError());
     m_stream.synchronize();
 
