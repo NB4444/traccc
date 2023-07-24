@@ -218,8 +218,10 @@ seed_finding::output_type seed_finding::operator()(
         m_seedfinder_config, g2_view, sp_grid_prefix_sum_buff,
         doublet_counter_buffer, (*globalCounter_device).m_nMidBot,
         (*globalCounter_device).m_nMidTop, d_vec_count_double);
+
     CUDA_ERROR_CHECK(cudaGetLastError());
     m_stream.synchronize();
+    cudaFree(d_vec_count_double);
 
     // Get the summary values.
     device::seeding_global_counter globalCounter_host;
@@ -285,6 +287,7 @@ seed_finding::output_type seed_finding::operator()(
     // Wait here for the find doublets kernel to finish
     CUDA_ERROR_CHECK(cudaGetLastError());
     m_stream.synchronize();
+    cudaFree(d_vec_find_double);
 
     // Count the number of triplets that we need to produce.
     kernels::count_triplets<<<nTripletCountBlocks, nTripletCountThreads, 0,
@@ -310,6 +313,7 @@ seed_finding::output_type seed_finding::operator()(
     // Wait here for the count triplets kernel to finish
     CUDA_ERROR_CHECK(cudaGetLastError());
     m_stream.synchronize();
+    cudaFree(d_vec_count_triplets);
 
     // Reduce the triplet counts per spM.
     kernels::reduce_triplet_counts<<<nTcReductionBlocks, nTcReductionThreads, 0,
@@ -369,6 +373,7 @@ seed_finding::output_type seed_finding::operator()(
     // Wait here for the find triplets kernel to finish
     CUDA_ERROR_CHECK(cudaGetLastError());
     m_stream.synchronize();
+    cudaFree(d_vec);
 
     // Update the weights of all spacepoint triplets.
     kernels::update_triplet_weights<<<
@@ -400,6 +405,7 @@ seed_finding::output_type seed_finding::operator()(
     // Wait here for the update triplet weights kernel to finish
     CUDA_ERROR_CHECK(cudaGetLastError());
     m_stream.synchronize();
+    cudaFree(d_vec_update_triple);
 
     // Create seeds out of selected triplets
     kernels::select_seeds<<<nSeedSelectingBlocks, nSeedSelectingThreads,
@@ -412,6 +418,7 @@ seed_finding::output_type seed_finding::operator()(
                                       triplet_buffer, seed_buffer, d_vec_seeds);
     CUDA_ERROR_CHECK(cudaGetLastError());
     m_stream.synchronize();
+    cudaFree(d_vec_seeds);
 
     return seed_buffer;
 }
